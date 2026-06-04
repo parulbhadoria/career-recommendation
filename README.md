@@ -78,7 +78,7 @@ Open [http://localhost:5000](http://localhost:5000) in your browser.
 ## Screenshot
 
 <!-- Add screenshot here after running the app -->
-![Career Recommendation UI](screenshot.png)
+![Career Recommendation UI](assests/image.png)
 
 ## Model Comparison
 
@@ -137,3 +137,6 @@ Results from `train_model.py` on an 80/20 stratified split (random_state=42):
 ## License
 
 MIT
+
+# Live Demo
+https://career-recommendation-1496.onrender.com
