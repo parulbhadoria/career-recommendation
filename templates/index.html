@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Career Recommendation System</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Career Recommendation System</h1>
+      <p>Discover your ideal career path based on skills, aptitude, and interests</p>
+    </header>
+
+    <section class="card">
+      <h2>Your Profile</h2>
+      <form id="career-form">
+        <div class="form-grid">
+          <div class="field">
+            <label>Programming Skill <span class="value" id="prog-val">5</span></label>
+            <input type="range" id="programming_skill" name="programming_skill" min="1" max="10" value="5" />
+          </div>
+          <div class="field">
+            <label>Math Skill <span class="value" id="math-val">5</span></label>
+            <input type="range" id="math_skill" name="math_skill" min="1" max="10" value="5" />
+          </div>
+          <div class="field">
+            <label>Communication Skill <span class="value" id="comm-val">5</span></label>
+            <input type="range" id="communication_skill" name="communication_skill" min="1" max="10" value="5" />
+          </div>
+          <div class="field">
+            <label>Logic Score <span class="value" id="logic-val">5</span></label>
+            <input type="range" id="logic_score" name="logic_score" min="1" max="10" value="5" />
+          </div>
+          <div class="field">
+            <label>CGPA (5.0 – 10.0)</label>
+            <input type="number" id="cgpa" name="cgpa" min="5" max="10" step="0.1" value="7.5" />
+          </div>
+          <div class="field">
+            <label>Aptitude Score (40 – 100)</label>
+            <input type="number" id="aptitude_score" name="aptitude_score" min="40" max="100" value="70" />
+          </div>
+          <div class="field">
+            <label>Interest Area</label>
+            <select id="interest_area" name="interest_area">
+              <option value="AI/ML">AI/ML</option>
+              <option value="Coding">Coding</option>
+              <option value="Business">Business</option>
+              <option value="Networking">Networking</option>
+              <option value="Design">Design</option>
+              <option value="Data">Data</option>
+              <option value="Security">Security</option>
+              <option value="Management">Management</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="submit-btn">Get Recommendation</button>
+      </form>
+      <p class="error-msg" id="error-msg"></p>
+    </section>
+
+    <section id="results" class="card" style="display: none; margin-top: 1.5rem;">
+      <h2>Top Career Matches</h2>
+      <div class="career-cards" id="career-cards"></div>
+    </section>
+
+    <section id="details" class="card" style="display: none;">
+      <h2 id="details-title">About Your Top Match</h2>
+      <p class="description" id="career-description"></p>
+      <h2 style="margin-top: 1.25rem; font-size: 1rem;">Required Skills</h2>
+      <div class="skill-tags" id="required-skills"></div>
+    </section>
+
+    <section id="gaps" class="card" style="display: none;">
+      <h2>Skill Gap Analysis</h2>
+      <ul class="gap-list" id="gap-list"></ul>
+    </section>
+  </div>
+
+  <script>
+    const sliders = [
+      { id: "programming_skill", label: "prog-val" },
+      { id: "math_skill", label: "math-val" },
+      { id: "communication_skill", label: "comm-val" },
+      { id: "logic_score", label: "logic-val" },
+    ];
+
+    sliders.forEach(({ id, label }) => {
+      const el = document.getElementById(id);
+      const valEl = document.getElementById(label);
+      el.addEventListener("input", () => {
+        valEl.textContent = el.value;
+      });
+    });
+
+    document.getElementById("career-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("submit-btn");
+      const errorEl = document.getElementById("error-msg");
+      errorEl.classList.remove("visible");
+      btn.disabled = true;
+      btn.textContent = "Analyzing...";
+
+      const payload = {
+        programming_skill: parseInt(document.getElementById("programming_skill").value),
+        math_skill: parseInt(document.getElementById("math_skill").value),
+        communication_skill: parseInt(document.getElementById("communication_skill").value),
+        logic_score: parseInt(document.getElementById("logic_score").value),
+        cgpa: parseFloat(document.getElementById("cgpa").value),
+        aptitude_score: parseInt(document.getElementById("aptitude_score").value),
+        interest_area: document.getElementById("interest_area").value,
+      };
+
+      try {
+        const res = await fetch("/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Prediction failed");
+
+        renderResults(data);
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.add("visible");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Get Recommendation";
+      }
+    });
+
+    function renderResults(data) {
+      const cardsEl = document.getElementById("career-cards");
+      cardsEl.innerHTML = "";
+
+      data.top_recommendations.forEach((rec) => {
+        const card = document.createElement("div");
+        card.className = `career-card rank-${rec.rank}`;
+        card.innerHTML = `
+          <span class="rank-badge">#${rec.rank}</span>
+          <h3>${rec.career}</h3>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 0%"></div>
+          </div>
+          <p class="confidence-text">${rec.confidence}% confidence</p>
+        `;
+        cardsEl.appendChild(card);
+        requestAnimationFrame(() => {
+          card.querySelector(".progress-fill").style.width = rec.confidence + "%";
+        });
+      });
+
+      const results = document.getElementById("results");
+      results.style.display = "block";
+      results.classList.remove("visible");
+      void results.offsetWidth;
+      results.classList.add("visible");
+
+      const top = data.top_career;
+      document.getElementById("details-title").textContent = `About ${top.name}`;
+      document.getElementById("career-description").textContent = top.description;
+
+      const skillsEl = document.getElementById("required-skills");
+      skillsEl.innerHTML = top.required_skills
+        .map((s) => `<span class="tag">${s}</span>`)
+        .join("");
+
+      const gapEl = document.getElementById("gap-list");
+      gapEl.innerHTML = data.skill_gap_analysis
+        .map((g) => `<li>${g}</li>`)
+        .join("");
+
+      document.getElementById("details").style.display = "block";
+      document.getElementById("gaps").style.display = "block";
+    }
+  </script>
+</body>
+</html>
