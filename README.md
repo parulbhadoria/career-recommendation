@@ -78,7 +78,7 @@ Open [http://localhost:5000](http://localhost:5000) in your browser.
 ## Screenshot
 
 <!-- Add screenshot here after running the app -->
-![Career Recommendation UI](assests/image.png)
+![Career Recommendation UI](assets/image.png)
 
 ## Model Comparison
 
